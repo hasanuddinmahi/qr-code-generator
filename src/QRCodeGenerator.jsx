@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import QRCode from "react-qr-code";
 import "./QRCodeGenerator.css";
 
@@ -7,6 +7,7 @@ export default function QRCodeGenerator() {
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [qrValue, setQrValue] = useState("");
+  const svgRef = useRef(null);
 
   const handleGenerate = () => {
     if (inputType === "text") {
@@ -14,6 +15,31 @@ export default function QRCodeGenerator() {
     } else if (inputType === "url") {
       setQrValue(url);
     }
+  };
+
+  const handleDownload = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const image = new Image();
+    image.onload = () => {
+      canvas.width = 256;
+      canvas.height = 256;
+      ctx.drawImage(image, 0, 0);
+      const pngUrl = canvas.toDataURL("image/png");
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = "qr-code.png";
+      downloadLink.click();
+    };
+    image.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
   };
 
   return (
@@ -61,8 +87,16 @@ export default function QRCodeGenerator() {
 
       {qrValue && (
         <div className="qr-result">
-          <QRCode id="qr-svg" value={qrValue} style={{ height: "256px", width: "256px" }} />
+          <QRCode
+            ref={svgRef}
+            id="qr-svg"
+            value={qrValue}
+            style={{ height: "256px", width: "256px" }}
+          />
           <p>{qrValue}</p>
+          <button type="button" onClick={handleDownload}>
+            Download QR Code
+          </button>
         </div>
       )}
     </div>
